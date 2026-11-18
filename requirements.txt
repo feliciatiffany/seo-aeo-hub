@@ -1,0 +1,6 @@
+cryptography==50.0.2
+google-auth-oauthlib==1.5.0
+google-auth==2.62.1
+oauthlib==4.0.1
+requests-oauthlib==2.0.0
+requests==2.34.2

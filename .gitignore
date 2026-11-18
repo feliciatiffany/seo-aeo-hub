@@ -1,0 +1,9 @@
+.env
+data/
+.venv/
+secrets/
+public/
+__pycache__/
+share/
+dashboard.html
+demo/_build/
