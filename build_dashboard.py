@@ -775,6 +775,12 @@ def main():
         "budget": int(os.environ.get("AHREFS_MONTHLY_BUDGET", 20000)),
     }
     data["brand"], data["siteUrl"] = BRAND, SITE_BASE
+    # When each source was last pulled, for the "Data last updated" strip at the top.
+    import datetime as _dt
+    ref = sorted(x.parent.parent.name for x in AHREFS_DIR.glob("*/live/refdomains.json") if x.parent.parent.name <= d.parent.name)
+    data["freshness"] = {"built": _dt.datetime.now().isoformat(timespec="minutes"),
+                         "refdomainsPulled": ref[-1] if ref else None,
+                         "refresh": os.environ.get("HUB_REFRESH_NOTE", "Refreshes every Friday morning")}
     data["gsc"] = build_gsc()
     data["ga4"] = build_ga4()
     data["content"] = build_content(data)
