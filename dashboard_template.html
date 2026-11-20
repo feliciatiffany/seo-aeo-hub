@@ -113,15 +113,11 @@ nav { padding: 14px 10px; overflow-y: auto; flex: 1; }
 main { flex: 1; min-width: 0; padding: 56px 64px 80px; max-width: 1240px; }
 h1 { font-weight: 400; font-size: 32px; letter-spacing: -.01em; margin: 0 0 6px; }
 .sub { color: var(--muted); margin: 0 0 20px; }
-.fresh { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 44px; }
-.fresh-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 14px 16px; }
-.fresh-top { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; }
-.fresh-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
+.fresh { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12px; color: var(--muted); margin: -12px 0 36px; }
+.fresh-label { color: var(--text-2); }
+.fresh-item { display: inline-flex; align-items: center; gap: 6px; cursor: help; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fresh-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
 .fresh-dot.good { background: var(--good); } .fresh-dot.warn { background: var(--warn); } .fresh-dot.bad { background: var(--bad); }
-.fresh-when { font-size: 16px; font-weight: 500; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
-.fresh-when span { color: var(--muted); font-size: 13px; font-weight: 400; }
-.fresh-line { color: var(--muted); font-size: 12px; line-height: 1.5; }
-@media (max-width: 1100px) { .fresh { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 section { margin-bottom: 48px; scroll-margin-top: 24px; }
 .eyebrow {
   font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
@@ -717,11 +713,6 @@ tbody tr.ptrend-row td, tbody tr.ptrend-row:hover td { background: var(--surface
     changes: 'Daily traffic with every change to the site marked on the day it went live: new blog posts and release notes (on their publish date), edits to posts, and other site changes (from the marketing site\u2019s main branch). Hover a marker to see what changed. A change on the same day as a jump is a lead, not proof.',
     changesChart: 'Hover anywhere on the line for that day\u2019s number and any changes made that day. Coloured dots under the chart mark change days.',
     changesTable: 'For each day something changed: the traffic that day, the average per day in the 7 days before and the 7 days after, and how much that average moved. Changes close together share the same days, so read them together.',
-    fresh: 'When each source was last downloaded and which days its numbers cover. Green: within a week. Amber: 1–2 weeks old. Red: older, so the numbers may be out of date.',
-    freshAhrefs: 'Domain Rating, backlinks, keywords and top pages from Ahrefs. The referring-domains list is re-downloaded less often to save API units, so it can be older.',
-    freshGa4: 'Visitors, demo and sign-up clicks, and AI-assistant visits from Google Analytics. Data runs to the day before the download.',
-    freshGsc: 'Google search clicks, impressions and searches from Search Console. Google settles these numbers about 3 days late, so the data ends a few days before the download.',
-    freshBuilt: 'When this page was last rebuilt from the downloaded data. Blog posts and site changes are read at that moment.',
     pdViews: 'Times this post was viewed each day (Google Analytics).',
     pdClicks: 'Clicks from Google search results to this post each day (Search Console, settles about 3 days late).',
     pdImpr: 'How many times Google showed this post in search results each day.',
@@ -751,26 +742,24 @@ tbody tr.ptrend-row td, tbody tr.ptrend-row:hover td { background: var(--surface
   function rangeOptions(days) {
     return RANGES.map(function (r) { return '<option value="' + r[0] + '"' + (r[0] === days ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('');
   }
-  // ---------- Data last updated: one card per source ----------
+  // ---------- Data last updated: one line, details on hover ----------
   var FR = D.freshness || {};
   function daysAgo(iso) { return iso ? Math.round((new Date(new Date().toISOString().slice(0, 10)) - new Date(iso.slice(0, 10))) / 864e5) : null; }
-  function agoText(n0) { return n0 == null ? '' : n0 <= 0 ? 'today' : n0 === 1 ? 'yesterday' : n0 + ' days ago'; }
-  function freshCard(name, tipKey, pulled, lines) {
+  function agoText(n0) { return n0 == null ? '' : n0 <= 0 ? 'today' : n0 === 1 ? 'yesterday' : n0 + 'd ago'; }
+  function shortDate(iso) { return new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }); }
+  function freshItem(name, pulled, detail) {
     var age = daysAgo(pulled), kind = age == null ? 'idle' : age <= 7 ? 'good' : age <= 14 ? 'warn' : 'bad';
-    return '<div class="fresh-card"><div class="fresh-top"><span class="fresh-dot ' + kind + '" aria-hidden="true"></span><span class="fresh-name">' + tip(name, tipKey) + '</span></div>' +
-      '<div class="fresh-when">' + (pulled ? esc(date(pulled)) + ' <span>· ' + agoText(age) + '</span>' : 'Not connected') + '</div>' +
-      lines.filter(Boolean).map(function (l) { return '<div class="fresh-line">' + l + '</div>'; }).join('') + '</div>';
+    var tipText = name + (pulled ? ': downloaded ' + date(pulled) + ' (' + agoText(age) + ')' : ': not connected') + (detail ? '\n' + detail : '');
+    return '<span class="fresh-item" tabindex="0" data-tip="' + esc(tipText) + '"><i class="fresh-dot ' + kind + '"></i>' + esc(name) + ' ' +
+      (pulled ? esc(shortDate(pulled)) : '—') + '</span>';
   }
   var gaDays = SITE && SITE.daily.people.length ? SITE.daily.people : (D.ga4 && D.ga4.organicDaily) || [];
-  var freshHtml = '<div class="block-title" style="margin-top:0">' + tip('Data last updated', 'fresh') + '</div><div class="fresh">' +
-    freshCard('Ahrefs', 'freshAhrefs', D.pulled, ['Authority, backlinks, keywords',
-      FR.refdomainsPulled && FR.refdomainsPulled !== D.pulled ? 'Referring domains from ' + esc(date(FR.refdomainsPulled)) : '']) +
-    (D.ga4 ? freshCard('Google Analytics', 'freshGa4', D.ga4.pulled, ['Visitors, clicks, AI visits',
-      gaDays.length ? 'Data ' + esc(date(gaDays[0].date)) + ' – ' + esc(date(gaDays[gaDays.length - 1].date)) : '']) : freshCard('Google Analytics', 'freshGa4', null, [])) +
-    (D.gsc ? freshCard('Search Console', 'freshGsc', D.gsc.pulled, ['Google clicks and searches',
-      D.gsc.daily.length ? 'Data ' + esc(date(D.gsc.daily[0].date)) + ' – ' + esc(date(D.gsc.daily[D.gsc.daily.length - 1].date)) : '']) : freshCard('Search Console', 'freshGsc', null, [])) +
-    freshCard('Dashboard', 'freshBuilt', FR.built, [FR.built ? 'Built ' + esc(FR.built.slice(11, 16)) : '', esc(FR.refresh || '')]) +
-    '</div>';
+  var span = function (pts) { return pts.length ? 'Data ' + date(pts[0].date) + ' – ' + date(pts[pts.length - 1].date) : ''; };
+  var freshHtml = '<div class="fresh"><span class="fresh-label">Updated</span>' +
+    freshItem('Ahrefs', D.pulled, FR.refdomainsPulled && FR.refdomainsPulled !== D.pulled ? 'Referring domains from ' + date(FR.refdomainsPulled) + ' (re-pulled every 2 weeks)' : '') +
+    freshItem('Analytics', D.ga4 && D.ga4.pulled, span(gaDays)) +
+    freshItem('Search Console', D.gsc && D.gsc.pulled, D.gsc ? span(D.gsc.daily) + ' (Google settles ~3 days late)' : '') +
+    '<span class="fresh-note">' + esc(FR.refresh || '') + '</span></div>';
 
   var H = '<h1>' + esc(D.target) + '</h1><p class="sub">SEO &amp; AEO dashboard</p>' + freshHtml +
     '<div class="range-bar"><label for="global-range">Charts show</label><select id="global-range" class="range-global" autocomplete="off">' + rangeOptions(DEF_RANGE) + '</select>' +
